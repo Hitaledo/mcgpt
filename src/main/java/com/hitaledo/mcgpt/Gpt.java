@@ -22,25 +22,27 @@ public class Gpt implements CommandExecutor {
     }
 
     public String apiPost(String url, String instructions, String question, String apikey, String model) {
+        String content = "Url is empty.";
         if (!url.isEmpty()) {
-            HttpURLConnection connection = (HttpURLConnection) new URI(url).toURL().openConnection();
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Content-Type", "application/json");
-            if (!apikey.isEmpty()) {
-                connection.setRequestProperty("Authorization", "Bearer " + apikey);
-            }
-            connection.setDoOutput(true);
-            String messages = "[{\"role\": \"system\",\"content\": \"" + instructions
-                    + "\"},{\"role\": \"user\",\"content\": \"" + question + "\"}]";
-            String data = "{\"model\": \"" + model + "\", \"messages\": \"" + messages + "\"}";
-            try (OutputStream os = connection.getOutputStream()) {
+            content = "Response was not ok.";
+            try {
+                HttpURLConnection connection = (HttpURLConnection) new URI(url).toURL().openConnection();
+                connection.setRequestMethod("POST");
+                connection.setRequestProperty("Content-Type", "application/json");
+                if (!apikey.isEmpty()) {
+                    connection.setRequestProperty("Authorization", "Bearer " + apikey);
+                }
+                connection.setDoOutput(true);
+                String messages = "[{\"role\": \"system\",\"content\": \"" + instructions
+                        + "\"},{\"role\": \"user\",\"content\": \"" + question + "\"}]";
+                String data = "{\"model\": \"" + model + "\", \"messages\": \"" + messages + "\"}";
+                OutputStream os = connection.getOutputStream();
                 byte[] postData = data.getBytes("utf-8");
                 os.write(postData, 0, postData.length);
-            }
-            int responseCode = connection.getResponseCode();
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                String content = "Response format error.";
-                try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                int responseCode = connection.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    content = "Field content was not found in JSON response.";
+                    BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                     StringBuilder response = new StringBuilder();
                     String line;
                     while ((line = br.readLine()) != null) {
@@ -51,18 +53,14 @@ public class Gpt implements CommandExecutor {
                     Matcher matcher = pattern.matcher(response.toString());
                     if (matcher.find()) {
                         content = matcher.group(1);
-                    } else {
-                        content = "Field content was not found in JSON response.";
                     }
                 }
-                return content;
-            } else {
-                return "Response was not ok.";
+                connection.disconnect();
+            } catch (Exception e) {
+                content = e.getMessage();
             }
-            connection.disconnect();
-        } else {
-            return "Url is empty.";
         }
+        return content;
     }
 
     public boolean onCommand(CommandSender sender, Command gpt, String label, String[] args) {
