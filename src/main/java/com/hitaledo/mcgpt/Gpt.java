@@ -5,6 +5,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.command.Command;
+import org.bukkit.ChatColor;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
