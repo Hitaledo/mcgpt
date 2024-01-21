@@ -96,16 +96,16 @@ public class Gpt implements CommandExecutor {
         }
         if (sender instanceof Player) {
             Player player = (Player) sender;
-            if (args.length == 1) {
-                player.sendMessage(apiPost(url, instructions, args[0], apikey, model));
+            if (args.length >= 1) {
+                player.sendMessage(apiPost(url, instructions, args, apikey, model));
             } else {
-                player.sendMessage("This command needs exactly one arg");
+                player.sendMessage("This command needs at least one arg");
             }
         } else {
-            if (args.length == 1) {
-                plugin.getLogger().info(apiPost(url, instructions, args[0], apikey, model));
+            if (args.length >= 1) {
+                plugin.getLogger().info(apiPost(url, instructions, args, apikey, model));
             } else {
-                plugin.getLogger().info("This command needs exactly one arg");
+                plugin.getLogger().info("This command needs at least one arg");
             }
         }
         return true;
