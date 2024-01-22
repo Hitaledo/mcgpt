@@ -6,6 +6,8 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.command.Command;
 import org.bukkit.ChatColor;
+import org.bukkit.Bukkit;
+import org.bukkit.scheduler.BukkitRunnable;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -35,7 +37,7 @@ public class Gpt implements CommandExecutor {
                 connection.setDoOutput(true);
                 String messages = "[{\"role\": \"system\",\"content\": \"" + instructions
                         + "\"},{\"role\": \"user\",\"content\": \"" + question + "\"}]";
-                String data = "{\"model\": \"" + model + "\", \"messages\": \"" + messages + "\"}";
+                String data = "{\"model\": \"" + model + "\", \"messages\": " + messages + "}";
                 OutputStream os = connection.getOutputStream();
                 byte[] postData = data.getBytes("utf-8");
                 os.write(postData, 0, postData.length);
@@ -65,45 +67,57 @@ public class Gpt implements CommandExecutor {
 
     public boolean onCommand(CommandSender sender, Command gpt, String label, String[] args) {
         FileConfiguration config = plugin.getConfig();
-        String url;
-        String instructions;
-        String apikey;
-        String model;
+        String url = "";
+        String instructions = "";
+        String apikey = "";
+        String model = "";
         try {
             url = config.getString("Config.url");
         } catch (Exception e) {
-            url = "";
             plugin.getLogger().info(ChatColor.GREEN + "Url config not found. Using default value: " + url);
         }
         try {
             instructions = config.getString("Config.instructions");
         } catch (Exception e) {
-            instructions = "";
             plugin.getLogger()
                     .info(ChatColor.GREEN + "Instructions config not found. Using default value: " + instructions);
         }
         try {
             apikey = config.getString("Config.apikey");
         } catch (Exception e) {
-            apikey = "";
             plugin.getLogger().info(ChatColor.GREEN + "Api key config not found. Using default value: " + apikey);
         }
         try {
             model = config.getString("Config.model");
         } catch (Exception e) {
-            model = "";
             plugin.getLogger().info(ChatColor.GREEN + "Model config not found. Using default value: " + model);
         }
+        final String finalUrl = url;
+        final String finalInstructions = instructions;
+        final String finalApikey = apikey;
+        final String finalModel = model;
         if (sender instanceof Player) {
             Player player = (Player) sender;
             if (args.length >= 1) {
-                player.sendMessage(apiPost(url, instructions, String.join(" ", args), apikey, model));
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        String response = apiPost(finalUrl, finalInstructions, String.join(" ", args), finalApikey, finalModel);
+                        Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(response));
+                    }
+                }.runTaskAsynchronously(plugin);
             } else {
                 player.sendMessage("This command needs at least one arg");
             }
         } else {
             if (args.length >= 1) {
-                plugin.getLogger().info(apiPost(url, instructions, String.join(" ", args), apikey, model));
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        String response = apiPost(finalUrl, finalInstructions, String.join(" ", args), finalApikey, finalModel);
+                        Bukkit.getScheduler().runTask(plugin, () -> plugin.getLogger().info(response));
+                    }
+                }.runTaskAsynchronously(plugin);
             } else {
                 plugin.getLogger().info("This command needs at least one arg");
             }
