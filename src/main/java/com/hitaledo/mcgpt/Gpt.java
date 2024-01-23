@@ -23,7 +23,7 @@ public class Gpt implements CommandExecutor {
         this.plugin = plugin;
     }
 
-    public String apiPost(String url, String instructions, String question, String apikey, String model) {
+    public String apiPost(String url, String question, String apikey, String model) {
         String content = "Url is empty.";
         if (!url.isEmpty()) {
             content = "Response was not ok.";
@@ -35,8 +35,7 @@ public class Gpt implements CommandExecutor {
                     connection.setRequestProperty("Authorization", "Bearer " + apikey);
                 }
                 connection.setDoOutput(true);
-                String messages = "[{\"role\": \"system\",\"content\": \"" + instructions
-                        + "\"},{\"role\": \"user\",\"content\": \"" + question + "\"}]";
+                String messages = "[{\"role\": \"user\",\"content\": \"" + question + "\"}]";
                 String data = "{\"model\": \"" + model + "\", \"messages\": " + messages + "}";
                 OutputStream os = connection.getOutputStream();
                 byte[] postData = data.getBytes("utf-8");
@@ -93,7 +92,8 @@ public class Gpt implements CommandExecutor {
             plugin.getLogger().info(ChatColor.GREEN + "Model config not found. Using default value: " + model);
         }
         final String finalUrl = url;
-        final String finalInstructions = instructions;
+        final String finalQuestion = !instructions.isEmpty() ? instructions + ". " + String.join(" ", args)
+                : String.join(" ", args);
         final String finalApikey = apikey;
         final String finalModel = model;
         if (sender instanceof Player) {
@@ -102,7 +102,7 @@ public class Gpt implements CommandExecutor {
                 new BukkitRunnable() {
                     @Override
                     public void run() {
-                        String response = apiPost(finalUrl, finalInstructions, String.join(" ", args), finalApikey, finalModel);
+                        String response = apiPost(finalUrl, finalQuestion, finalApikey, finalModel);
                         Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(response));
                     }
                 }.runTaskAsynchronously(plugin);
@@ -114,7 +114,7 @@ public class Gpt implements CommandExecutor {
                 new BukkitRunnable() {
                     @Override
                     public void run() {
-                        String response = apiPost(finalUrl, finalInstructions, String.join(" ", args), finalApikey, finalModel);
+                        String response = apiPost(finalUrl, finalQuestion, finalApikey, finalModel);
                         Bukkit.getScheduler().runTask(plugin, () -> plugin.getLogger().info(response));
                     }
                 }.runTaskAsynchronously(plugin);
