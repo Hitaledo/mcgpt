@@ -2,7 +2,6 @@ package com.hitaledo.mcgpt;
 
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.command.Command;
 import org.bukkit.ChatColor;
@@ -23,7 +22,8 @@ public class Gpt implements CommandExecutor {
         this.plugin = plugin;
     }
 
-    public String apiPost(String url, String instructions, String question, String apikey, String model) {
+    public String apiPost(String url, String instructions, String sender, String question, String apikey,
+            String model) {
         String content = "Url is empty.";
         if (!url.isEmpty()) {
             content = "Response was not ok.";
@@ -35,11 +35,19 @@ public class Gpt implements CommandExecutor {
                     connection.setRequestProperty("Authorization", "Bearer " + apikey);
                 }
                 connection.setDoOutput(true);
-                String messages = "[{\"role\": \"user\",\"content\": \"" + question + "\"}]";
-                if (!instructions.isEmpty()) {
-                    messages = "[{\"role\": \"user\",\"content\": \"" + instructions
-                            + "\"},{\"role\": \"user\",\"content\": \"" + question + "\"}]";
+                String messages = "{\"role\": \"user\",\"content\": \"" + question + "\"}";
+                if (!getHistory(sender).isEmpty()) {
+                    messages = getHistory(sender) + "," + messages;
                 }
+                String newHistory = messages;
+                if (!instructions.isEmpty()) {
+                    if (!apikey.isEmpty()) {
+                        messages = "{\"role\": \"system\",\"content\": \"" + instructions + "\"}" + "," + messages;
+                    } else {
+                        messages = "{\"role\": \"user\",\"content\": \"" + instructions + "\"}" + "," + messages;
+                    }
+                }
+                messages = "[" + messages + "]";
                 String data = "{\"model\": \"" + model + "\", \"messages\": " + messages + "}";
                 OutputStream os = connection.getOutputStream();
                 byte[] postData = data.getBytes("utf-8");
@@ -59,6 +67,7 @@ public class Gpt implements CommandExecutor {
                     if (matcher.find()) {
                         content = matcher.group(1);
                     }
+                    saveHistory(sender, newHistory);
                 }
                 connection.disconnect();
             } catch (Exception e) {
@@ -69,29 +78,28 @@ public class Gpt implements CommandExecutor {
     }
 
     public boolean onCommand(CommandSender sender, Command gpt, String label, String[] args) {
-        FileConfiguration config = plugin.getConfig();
         String url = "";
         String instructions = "";
         String apikey = "";
         String model = "";
         try {
-            url = config.getString("Config.url");
+            url = plugin.getConfig().getString("Config.url");
         } catch (Exception e) {
             plugin.getLogger().info(ChatColor.GREEN + "Url config not found. Using default value: " + url);
         }
         try {
-            instructions = config.getString("Config.instructions");
+            instructions = plugin.getConfig().getString("Config.instructions");
         } catch (Exception e) {
             plugin.getLogger()
                     .info(ChatColor.GREEN + "Instructions config not found. Using default value: " + instructions);
         }
         try {
-            apikey = config.getString("Config.apikey");
+            apikey = plugin.getConfig().getString("Config.apikey");
         } catch (Exception e) {
             plugin.getLogger().info(ChatColor.GREEN + "Api key config not found. Using default value: " + apikey);
         }
         try {
-            model = config.getString("Config.model");
+            model = plugin.getConfig().getString("Config.model");
         } catch (Exception e) {
             plugin.getLogger().info(ChatColor.GREEN + "Model config not found. Using default value: " + model);
         }
@@ -105,7 +113,8 @@ public class Gpt implements CommandExecutor {
                 new BukkitRunnable() {
                     @Override
                     public void run() {
-                        String response = apiPost(finalUrl, finalInstructions, String.join(" ", args), finalApikey,
+                        String response = apiPost(finalUrl, finalInstructions, player.getName(),
+                                String.join(" ", args), finalApikey,
                                 finalModel);
                         Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(response));
                     }
@@ -118,7 +127,9 @@ public class Gpt implements CommandExecutor {
                 new BukkitRunnable() {
                     @Override
                     public void run() {
-                        String response = apiPost(finalUrl, finalInstructions, String.join(" ", args), finalApikey,
+                        String response = apiPost(finalUrl, finalInstructions, "console",
+                                String.join(" ", args),
+                                finalApikey,
                                 finalModel);
                         Bukkit.getScheduler().runTask(plugin, () -> plugin.getLogger().info(response));
                     }
@@ -128,5 +139,23 @@ public class Gpt implements CommandExecutor {
             }
         }
         return true;
+    }
+
+    public boolean saveHistory(String sender, String history) {
+        plugin.dataConfig.set(sender, history);
+        try {
+            plugin.dataConfig.save(plugin.data);
+        } catch (Exception e) {
+            return false;
+        }
+        return true;
+    }
+
+    public String getHistory(String sender) {
+        try {
+            return plugin.dataConfig.getString(sender);
+        } catch (Exception e) {
+            return "";
+        }
     }
 }
