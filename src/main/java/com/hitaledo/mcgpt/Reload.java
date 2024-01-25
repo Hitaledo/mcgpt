@@ -13,7 +13,7 @@ public class Reload implements CommandExecutor {
 
     public boolean onCommand(CommandSender sender, Command gptreload, String label, String[] args) {
         plugin.reloadConfig();
-        sender.sendMessage(plugin.pluginName + "  has reloaded!");
+        sender.sendMessage(plugin.pluginName + " has reloaded!");
         return true;
     }
 }
