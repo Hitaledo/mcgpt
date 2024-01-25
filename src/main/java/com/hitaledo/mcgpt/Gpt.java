@@ -152,10 +152,6 @@ public class Gpt implements CommandExecutor {
     }
 
     public String getHistory(String sender) {
-        try {
-            return plugin.dataConfig.getString(sender);
-        } catch (Exception e) {
-            return "";
-        }
+        return plugin.dataConfig.contains(sender) ? plugin.dataConfig.getString(sender) : "";
     }
 }

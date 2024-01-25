@@ -28,6 +28,7 @@ public class App extends JavaPlugin {
             }
         }
         getCommand("gpt").setExecutor(new Gpt(this));
+        getCommand("gptreload").setExecutor(new Reload(this));
         getLogger().info(ChatColor.GREEN + pluginName + " has been enabled!");
     }
 
